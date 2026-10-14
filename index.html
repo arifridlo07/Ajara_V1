@@ -480,28 +480,27 @@ footer {
 <!-- DATA SUPABASE -->
 <section class="section" id="places-section">
   <div class="section-title">
-    <h2>Direktori Sekolah Ajara</h2>
-    <p>Temukan informasi sekolah yang tersimpan di database Ajara.</p>
+    <h2>Data Tempat dari Supabase</h2>
+    <p>Data yang tersimpan di database Ajara.</p>
   </div>
 
   <div class="places-wrap">
     <table id="places">
       <thead>
         <tr>
-          <th>Nama Sekolah</th>
+          <th>Nama</th>
           <th>Kategori</th>
-          <th>Alamat/Jalan</th>
+          <th>Rating</th>
+          <th>Review</th>
           <th>Kota</th>
           <th>Telepon</th>
-          <th>Rating</th>
-          <th>Ulasan</th>
-          <th>Google Maps</th>
+          <th>Maps</th>
         </tr>
       </thead>
 
       <tbody>
         <tr>
-          <td colspan="8">Memuat data sekolah...</td>
+          <td colspan="7">Memuat data...</td>
         </tr>
       </tbody>
     </table>
@@ -587,7 +586,7 @@ const SUPABASE_KEY = "sb_publishable_j194mcX7hZnbJ67fcYzTOQ_gAOm4ppN";
 
 
 // ======================================
-// MEMUAT DATA DARI TABEL tempat
+// MEMUAT DATA DARI TABEL PLACES
 // ======================================
 
 async function loadPlaces() {
@@ -595,19 +594,22 @@ async function loadPlaces() {
   const status = document.getElementById("places-status");
 
   tbody.replaceChildren();
-  status.textContent = "Memuat data sekolah...";
 
   const loadingRow = document.createElement("tr");
   const loadingCell = document.createElement("td");
-  loadingCell.colSpan = 8;
-  loadingCell.textContent = "Memuat data sekolah...";
+
+  loadingCell.colSpan = 7;
+  loadingCell.textContent = "Memuat data...";
+
   loadingRow.appendChild(loadingCell);
   tbody.appendChild(loadingRow);
+
+  status.textContent = "Menghubungkan ke Supabase...";
 
   try {
     const endpoint =
       SUPABASE_URL +
-      "/rest/v1/tempat?select=*&order=judul.asc&limit=100";
+      "/rest/v1/places?select=*&order=reviews_count.desc.nullslast&limit=100";
 
     const res = await fetch(endpoint, {
       headers: {
@@ -617,46 +619,57 @@ async function loadPlaces() {
     });
 
     if (!res.ok) {
-      throw new Error("HTTP " + res.status + ": " + await res.text());
+      throw new Error(
+        "HTTP " + res.status + ": " + await res.text()
+      );
     }
 
     const rows = await res.json();
+
     tbody.replaceChildren();
 
     if (!rows.length) {
       const tr = document.createElement("tr");
       const td = document.createElement("td");
-      td.colSpan = 8;
-      td.textContent = "Belum ada data sekolah.";
+
+      td.colSpan = 7;
+      td.textContent = "Belum ada data.";
+
       tr.appendChild(td);
       tbody.appendChild(tr);
     }
 
     for (const p of rows) {
       const tr = document.createElement("tr");
+
       const values = [
-        p.judul,
-        p.nama_kategori,
-        p.jalan,
-        p.kota,
-        p.telepon,
-        p.total_skor,
-        p.reviews_count
+        p.title,
+        p.category_name,
+        p.total_score,
+        p.reviews_count,
+        p.city,
+        p.phone
       ];
 
       for (const value of values) {
         const td = document.createElement("td");
-        td.textContent = value === null || value === undefined || value === "" ? "-" : value;
+        td.textContent = value ?? "-";
         tr.appendChild(td);
       }
 
       const mapCell = document.createElement("td");
-      if (typeof p.url === "string" && p.url.startsWith("https://")) {
+
+      if (
+        typeof p.url === "string" &&
+        p.url.startsWith("https://")
+      ) {
         const a = document.createElement("a");
+
         a.href = p.url;
         a.target = "_blank";
         a.rel = "noopener noreferrer";
-        a.textContent = "Buka Maps";
+        a.textContent = "Buka";
+
         mapCell.appendChild(a);
       } else {
         mapCell.textContent = "-";
@@ -666,19 +679,29 @@ async function loadPlaces() {
       tbody.appendChild(tr);
     }
 
-    status.textContent = "Berhasil memuat " + rows.length + " data sekolah/tempat.";
+    status.textContent =
+      "Berhasil memuat " + rows.length + " data.";
+
   } catch (error) {
     tbody.replaceChildren();
+
     const tr = document.createElement("tr");
     const td = document.createElement("td");
-    td.colSpan = 8;
-    td.textContent = "Gagal memuat data. Periksa nama kolom dan kebijakan akses Supabase.";
+
+    td.colSpan = 7;
+    td.textContent =
+      "Gagal memuat data. Periksa konfigurasi, nama kolom, dan kebijakan akses Supabase.";
+
     tr.appendChild(td);
     tbody.appendChild(tr);
-    status.textContent = "Koneksi gagal: " + error.message;
+
+    status.textContent =
+      "Koneksi gagal. Periksa Console browser.";
+
     console.error("Supabase loadPlaces error:", error);
   }
 }
+
 
 // ======================================
 // SIMULASI CHAT AJARA
